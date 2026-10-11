@@ -55,10 +55,9 @@ app/
   opengraph-image.tsx   # imagem de compartilhamento 1200x630 gerada no build
 components/
   navbar, hero-section, services-section, about-section, process-section,
-  testimonials-section, faq-section, contact-section, footer,
+  testimonials-section, faq-section, contact-section, portfolio-section, footer,
   structured-data.tsx   # JSON-LD LocalBusiness + FAQPage
   painel/field-editor.tsx  # editor genérico de campos (texto, lista, ícone, cor)
-components/portfolio-section.tsx  # galeria de fotos (some sozinha quando vazia)
 content/
   site-config.json      # ✅ FONTE ÚNICA DE CONTEÚDO
   uploads/              # fotos enviadas pelo painel
