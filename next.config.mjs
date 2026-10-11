@@ -21,6 +21,10 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  // Esconde o selo "N" do Next.js que fica flutuando sobre a página no
+  // servidor de desenvolvimento (padrão: canto inferior esquerdo).
+  // Só vale para o `next dev`; no build de produção esse selo não existe.
+  devIndicators: false,
   ...(allowedDevOrigins.length ? { allowedDevOrigins } : {}),
 }
 
