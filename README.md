@@ -35,7 +35,12 @@ pnpm install     # instala as dependências (lockfile preservado)
 pnpm dev         # servidor de desenvolvimento em http://localhost:3000
 pnpm build       # build de produção (valida os tipos)
 pnpm start       # sobe o build de produção
+pnpm lint        # ESLint
+pnpm typecheck   # TypeScript (tsc --noEmit)
+pnpm test        # testes de unidade (Vitest)
 ```
+
+Toda alteração é validada no CI (`.github/workflows/ci.yml`): lint, tipos, testes e build.
 
 > Requer Node.js 20+ e pnpm. Se não tiver o pnpm: `corepack enable` ou `npm i -g pnpm`.
 
@@ -129,6 +134,9 @@ site nunca quebra por conteúdo incompleto.
 2. Reaproveite os blocos existentes: hero, serviços, sobre, processo, depoimentos, FAQ,
    contato e rodapé. Cada lista aceita **adicionar, reordenar e remover** itens pelo painel.
 3. Ajuste as cores de marca em `colors` (aplicadas via `siteThemeCss` no `<html>`).
+   A cor primária informada é convertida automaticamente em duas variações com
+   contraste WCAG AA (≥ 4,5:1) — uma para o tema claro e outra para o escuro —
+   então qualquer marca continua legível sem ajuste manual.
 4. Troque `meta.siteUrl` (ou defina `NEXT_PUBLIC_SITE_URL`) para o domínio final.
 5. Os ícones disponíveis estão em `lib/icons.ts` e são escolhidos no painel.
 

@@ -1,4 +1,5 @@
 import rawConfig from "@/content/site-config.json"
+import { ensureAccessibleColors } from "@/lib/colors"
 
 /* ------------------------------------------------------------------ *
  * TIPOS — refletem 100% do conteúdo visível do site.
@@ -314,17 +315,27 @@ export function siteUrl(config: SiteConfig = siteConfig) {
 }
 
 /**
- * CSS das cores escolhidas no painel.
+ * Fundo do tema escuro (espelha --background de .dark em app/globals.css).
+ * Usado para derivar a versão acessível da cor de marca no tema escuro.
+ */
+const DARK_THEME_BACKGROUND = "#0e131f"
+
+/**
+ * CSS das cores escolhidas no painel, com contraste WCAG AA garantido.
  *
- * Usa especificidade maior que :root/.dark para vencer a ordem de carregamento:
- * - html:root  -> aplica as cores de marca nos dois temas (claro e escuro)
- * - html:not(.dark) -> aplica a paleta clara só quando o tema claro está ativo
+ * `--primary` é usado como texto sobre o fundo e como fundo de botão (com
+ * `--primary-foreground`), então derivamos duas variações da cor de marca do
+ * cliente: uma escura o bastante no tema claro e uma clara o bastante no
+ * escuro. Assim qualquer cor escolhida no painel continua legível.
  */
 export function siteThemeCss(config: SiteConfig) {
   const c = config.colors
+  const light = ensureAccessibleColors(c.primary, c.background, { preferredForeground: c.primaryForeground })
+  const dark = ensureAccessibleColors(c.primary, DARK_THEME_BACKGROUND, { preferredForeground: c.primaryForeground })
   return [
-    `html:root{--primary:${c.primary};--primary-foreground:${c.primaryForeground};--site-hero-glow:${c.heroGlow}}`,
-    `html:not(.dark){--background:${c.background};--foreground:${c.foreground};--muted-foreground:${c.mutedForeground}}`,
+    `html:root{--site-hero-glow:${c.heroGlow}}`,
+    `html:not(.dark){--primary:${light.primary};--primary-foreground:${light.primaryForeground};--background:${c.background};--foreground:${c.foreground};--muted-foreground:${c.mutedForeground}}`,
+    `html.dark{--primary:${dark.primary};--primary-foreground:${dark.primaryForeground}}`,
   ].join("\n")
 }
 
