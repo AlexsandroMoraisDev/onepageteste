@@ -132,7 +132,6 @@ export type ColorsConfig = {
   background: string
   foreground: string
   mutedForeground: string
-  heroGlow: string
 }
 
 export type SiteConfig = {
@@ -271,7 +270,6 @@ export const emptySiteConfig: SiteConfig = {
     background: "#fbfdf9",
     foreground: "#18221b",
     mutedForeground: "#647067",
-    heroGlow: "#d9f3de",
   },
 }
 
@@ -333,7 +331,6 @@ export function siteThemeCss(config: SiteConfig) {
   const light = ensureAccessibleColors(c.primary, c.background, { preferredForeground: c.primaryForeground })
   const dark = ensureAccessibleColors(c.primary, DARK_THEME_BACKGROUND, { preferredForeground: c.primaryForeground })
   return [
-    `html:root{--site-hero-glow:${c.heroGlow}}`,
     `html:not(.dark){--primary:${light.primary};--primary-foreground:${light.primaryForeground};--background:${c.background};--foreground:${c.foreground};--muted-foreground:${c.mutedForeground}}`,
     `html.dark{--primary:${dark.primary};--primary-foreground:${dark.primaryForeground}}`,
   ].join("\n")

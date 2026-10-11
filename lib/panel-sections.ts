@@ -17,7 +17,7 @@ export const panelSections: { key: keyof SiteConfig; label: string; hint: string
   { key: "faq", label: "9. Perguntas frequentes", hint: "Dúvidas que travam a decisão. Também aparecem no Google (FAQPage)." },
   { key: "contact", label: "10. Contato e localização", hint: "WhatsApp, endereço, mapa e horário. Endereço e telefone alimentam o Google." },
   { key: "footer", label: "11. Rodapé", hint: "Links de navegação, redes sociais e observação final." },
-  { key: "colors", label: "12. Cores do site", hint: "Cores de marca aplicadas no tema claro; o tema escuro mantém a paleta padrão." },
+  { key: "colors", label: "12. Cores do site", hint: "Cores de marca. O contraste é ajustado automaticamente nos temas claro e escuro." },
   { key: "meta", label: "13. SEO e dados da empresa", hint: "Título e descrição no Google, palavras-chave e dados usados nos resultados de busca." },
 ]
 
@@ -121,7 +121,6 @@ export const fieldLabels: Record<string, string> = {
   background: "Cor de fundo",
   foreground: "Cor do texto",
   mutedForeground: "Cor do texto secundário",
-  heroGlow: "Cor do brilho do Hero",
 }
 
 /** Nomes específicos por caminho (quando o mesmo campo aparece em seções diferentes). */

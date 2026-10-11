@@ -1,40 +1,13 @@
-"use client"
-
-import { useEffect, useRef, useState } from "react"
 import { ArrowRight, Droplets, Flower2, Leaf, ShieldCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { HeroConfig } from "@/lib/site-config"
 
 export function HeroSection({ hero, guarantee }: { hero: HeroConfig; guarantee?: string }) {
-  const [glow, setGlow] = useState<{ x: number; y: number } | null>(null)
-  const frame = useRef<number | null>(null)
-
-  useEffect(() => {
-    // Não monta o efeito em telas sensíveis ao toque (evita trabalho à toa).
-    if (typeof window === "undefined" || window.matchMedia("(pointer: coarse)").matches) return
-    const handleMove = (event: MouseEvent) => {
-      if (frame.current !== null) return
-      frame.current = window.requestAnimationFrame(() => {
-        frame.current = null
-        setGlow({ x: event.clientX, y: event.clientY })
-      })
-    }
-    window.addEventListener("mousemove", handleMove, { passive: true })
-    return () => {
-      window.removeEventListener("mousemove", handleMove)
-      if (frame.current !== null) window.cancelAnimationFrame(frame.current)
-    }
-  }, [])
-
   return (
     <section id="inicio" className="relative flex min-h-[88vh] items-center justify-center overflow-hidden px-4 sm:px-6 lg:px-8">
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute left-[8%] top-[18%] size-[420px] rounded-full bg-primary/15 blur-3xl" />
         <div className="absolute bottom-[5%] right-[10%] size-[380px] rounded-full bg-primary/10 blur-3xl" />
-        <div
-          className="absolute size-[280px] rounded-full opacity-60 blur-3xl transition-all duration-1000"
-          style={{ left: (glow?.x ?? -400) - 140, top: (glow?.y ?? -400) - 140, backgroundColor: "var(--site-hero-glow)" }}
-        />
       </div>
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 text-primary/30">
         <Leaf className="absolute left-[12%] top-[20%] size-10 animate-float" />

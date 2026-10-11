@@ -52,7 +52,6 @@ describe("siteThemeCss", () => {
   it("emite as variáveis do tema claro e do escuro", () => {
     expect(css).toContain("html:not(.dark){")
     expect(css).toContain("html.dark{")
-    expect(css).toContain("--site-hero-glow")
     expect(css).toContain("--primary:")
     expect(css).toContain("--primary-foreground:")
   })

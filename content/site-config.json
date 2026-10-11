@@ -343,7 +343,6 @@
     "primaryForeground": "#ffffff",
     "background": "#fbfdf9",
     "foreground": "#18221b",
-    "mutedForeground": "#647067",
-    "heroGlow": "#d9f3de"
+    "mutedForeground": "#647067"
   }
 }
