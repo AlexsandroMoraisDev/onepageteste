@@ -77,8 +77,8 @@
 }
 
 @theme inline {
-  --font-sans: "Geist", "Geist Fallback";
-  --font-mono: "Geist Mono", "Geist Mono Fallback";
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SFMono-Regular", monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -170,4 +170,29 @@
 
 .animate-float {
   animation: float 6s ease-in-out infinite;
+}
+
+/* --- Ajustes de UX / acessibilidade --- */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Compensa o cabeçalho fixo ao navegar por âncoras (#servicos, #contato...) */
+section[id] {
+  scroll-margin-top: 5.5rem;
+}
+
+/* FAQ em <details>: remove o marcador padrão */
+summary::-webkit-details-marker {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .animate-float {
+    animation: none;
+  }
 }

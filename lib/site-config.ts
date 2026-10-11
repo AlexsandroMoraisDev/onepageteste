@@ -1,39 +1,341 @@
-export type ServiceItem = { title: string; description: string }
-export type ValueItem = { title: string; description: string }
-export type StatItem = { number: string; label: string }
-export type StepItem = { number: string; title: string; description: string }
-export type TestimonialItem = { quote: string; name: string; role: string }
+import rawConfig from "@/content/site-config.json"
 
-export type SiteConfig = {
-  brand: { name: string; copyright: string; instagramUrl: string; whatsappUrl: string }
-  navigation: { about: string; services: string; contact: string; aboutUrl: string; servicesUrl: string; contactUrl: string; themeLabel: string }
-  hero: { eyebrow: string; title: string; highlight: string; description: string; primaryLabel: string; primaryUrl: string; secondaryLabel: string; secondaryUrl: string; tags: string[] }
-  services: { eyebrow: string; title: string; description: string; items: ServiceItem[] }
-  about: { eyebrow: string; titleBefore: string; titleHighlight: string; description: string; values: ValueItem[]; stats: StatItem[] }
-  process: { eyebrow: string; titleBefore: string; titleHighlight: string; titleAfter: string; description: string; steps: StepItem[] }
-  testimonials: { title: string; description: string; items: TestimonialItem[] }
-  contact: { eyebrow: string; titleBefore: string; titleHighlight: string; description: string; quoteButtonLabel: string; quoteButtonUrl: string; quoteDescription: string; visitEyebrow: string; visitTitle: string; addressLabel: string; address: string; phoneLabel: string; phone: string; hoursLabel: string; hours: string }
-  footer: { navigationTitle: string; socialTitle: string }
-  colors: { primary: string; background: string; foreground: string; mutedForeground: string; heroGlow: string }
+/* ------------------------------------------------------------------ *
+ * TIPOS — refletem 100% do conteúdo visível do site.
+ * O código do template nunca muda por cliente: só o JSON em
+ * content/site-config.json é reescrito (à mão ou por IA).
+ * ------------------------------------------------------------------ */
+
+export type NavLink = { label: string; href: string }
+export type IconItem = { icon: string; title: string; description: string }
+export type StatItem = { number: string; label: string }
+export type TestimonialItem = { quote: string; name: string; role: string }
+export type FaqItem = { question: string; answer: string }
+export type SocialItem = { icon: string; label: string; url: string }
+export type OpeningHours = { days: string[]; opens: string; closes: string }
+export type PostalAddress = {
+  street: string
+  district: string
+  city: string
+  region: string
+  postalCode: string
+  country: string
 }
 
-export const defaultSiteConfig: SiteConfig = {
-  brand: { name: "Busca Vida Garden", copyright: "© 2025 Busca Vida Garden. Todos os direitos reservados.", instagramUrl: "https://www.instagram.com/buscavidagarden9", whatsappUrl: "https://wa.me/5571999452379" },
-  navigation: { about: "Sobre nós", services: "Serviços", contact: "Contato", aboutUrl: "#over-ons", servicesUrl: "#servicos", contactUrl: "#contact", themeLabel: "Alternar tema" },
-  hero: { eyebrow: "Plantas, paisagismo e cuidado", title: "Seu jardim começa", highlight: "aqui", description: "Encontre plantas ornamentais, vasos, insumos e produtos para piscina para transformar sua casa em um espaço mais vivo.", primaryLabel: "Fale com a gente", primaryUrl: "https://wa.me/5571999452379", secondaryLabel: "Conheça nossa loja", secondaryUrl: "https://www.google.com/maps", tags: ["Plantas ornamentais", "Vasos e decoração", "Produtos para piscina"] },
-  services: { eyebrow: "O que você encontra", title: "Tudo para cultivar bons momentos", description: "Da primeira muda ao cuidado diário, a Busca Vida Garden reúne produtos e conhecimento para deixar sua casa mais viva.", items: [
-    { title: "Plantas ornamentais", description: "Espécies para dentro e fora de casa, escolhidas para trazer mais verde, beleza e vida ao seu ambiente." }, { title: "Vasos e decoração", description: "Vasos, cachepôs e acessórios para combinar com seu estilo e valorizar cada planta." }, { title: "Jardim e paisagismo", description: "Insumos e orientações para você plantar, cuidar e manter seu jardim sempre bonito." }, { title: "Produtos para piscina", description: "Tudo para manter sua piscina limpa, equilibrada e pronta para os melhores momentos." }, { title: "Terra e adubos", description: "Substratos, adubos e soluções para ajudar suas plantas a crescerem fortes e saudáveis." }, { title: "Atendimento especializado", description: "Conte com uma equipe próxima para encontrar o produto certo para sua necessidade." }] },
-  about: { eyebrow: "Sobre a Busca Vida Garden", titleBefore: "Natureza que", titleHighlight: "transforma", description: "Cuidar do seu espaço pode ser simples. Na Busca Vida Garden você encontra tudo para cultivar, decorar e aproveitar melhor cada cantinho da sua casa.", values: [{ title: "Qualidade", description: "Produtos selecionados para acompanhar sua rotina de cuidado." }, { title: "Variedade", description: "Variedade para encontrar tudo em um só lugar." }, { title: "Confiança", description: "Atendimento honesto e próximo em cada visita." }, { title: "Atendimento próximo", description: "A sua casa e o seu jardim são sempre o centro." }, { title: "Para sua casa", description: "Soluções para todos os tipos de ambiente." }, { title: "Vida ao ar livre", description: "Mais verde, beleza e bem-estar ao ar livre." }], stats: [{ number: "50+", label: "Categorias" }, { number: "45+", label: "Produtos selecionados" }, { number: "30+", label: "Soluções para jardim" }, { number: "3+", label: "Anos cuidando de jardins" }] },
-  process: { eyebrow: "Como podemos ajudar", titleBefore: "Do", titleHighlight: "primeiro vaso", titleAfter: "ao jardim completo", description: "Em três passos simples, ajudamos você a escolher as plantas, vasos e soluções ideais para transformar seu espaço.", steps: [{ number: "01", title: "Escolha e planejamento", description: "Entendemos o que você procura e ajudamos a escolher as plantas, vasos e produtos ideais para o seu espaço." }, { number: "02", title: "Montagem e cuidado", description: "Com os produtos certos, você cria composições bonitas e mantém suas plantas saudáveis por muito mais tempo." }, { number: "03", title: "Aproveite seu espaço", description: "Leve mais verde para dentro e para fora de casa e conte com a Busca Vida Garden sempre que precisar." }] },
-  testimonials: { title: "Quem conhece, recomenda", description: "Na Busca Vida, qualidade e cuidado vêm sempre em primeiro lugar. Ajudamos você a escolher as plantas, vasos e soluções certas para deixar cada ambiente mais bonito e vivo.", items: [{ quote: "Encontrei plantas lindas e um atendimento que realmente entende do assunto. Minha casa ficou muito mais viva.", name: "Ana Paula Souza", role: "Cliente residencial" }, { quote: "A equipe ajudou a escolher os vasos e os cuidados para cada ambiente. Foi fácil, rápido e o resultado ficou lindo.", name: "Carlos Henrique Lima", role: "Cliente residencial" }, { quote: "Além da variedade, gostei muito da orientação. Saí com tudo o que precisava para montar meu jardim.", name: "Mariana Oliveira", role: "Paisagista" }] },
-  contact: { eyebrow: "Próximo passo", titleBefore: "Vamos cuidar do seu", titleHighlight: "jardim?", description: "Fale com a Busca Vida Garden e encontre as plantas, vasos e produtos certos para transformar o seu espaço.", quoteButtonLabel: "Solicitar orçamento pelo WhatsApp", quoteButtonUrl: "https://wa.me/5571997092070?text=Olá%20Busca%20Vida%20Garden!%20Gostaria%20de%20saber%20mais%20sobre%20os%20produtos%20e%20serviços.", quoteDescription: "Fale diretamente com a nossa equipe e encontre a melhor solução para o seu espaço.", visitEyebrow: "Visite a loja", visitTitle: "Estamos perto de você", addressLabel: "Endereço", address: "R Direta de Busca Vida, S/N, Quadra 16\nCatu de Abrantes, Camaçari - BA\nCEP 42.825-576", phoneLabel: "Telefone", phone: "(71) 99709-2070", hoursLabel: "Horário de atendimento", hours: "Segunda a sexta: 8h às 18h\nSábado: 8h às 12h" },
-  footer: { navigationTitle: "Navegação", socialTitle: "Siga-nos" },
-  colors: { primary: "#3f9f5b", background: "#fbfdf9", foreground: "#18221b", mutedForeground: "#647067", heroGlow: "#d9f3de" },
+export type MetaConfig = {
+  title: string
+  description: string
+  keywords: string[]
+  siteUrl: string
+  locale: string
+  ogTitle: string
+  ogDescription: string
+  themeColor: string
+  business: {
+    type: string
+    legalName: string
+    priceRange: string
+    areaServed: string
+    currency: string
+    latitude: string
+    longitude: string
+    address: PostalAddress
+    sameAs: string[]
+      }
+}
+
+export type BrandConfig = {
+  logoIcon: string
+  name: string
+  tagline: string
+  copyright: string
+  whatsappUrl: string
+  instagramUrl: string
+  email: string
+  phoneLabel: string
+  phoneUrl: string
+}
+
+export type NavbarConfig = {
+  links: NavLink[]
+  ctaLabel: string
+  ctaUrl: string
+  menuTitle: string
+  menuDescription: string
+  menuToggleLabel: string
+  themeToggleLabel: string
+}
+
+export type HeroConfig = {
+  eyebrow: string
+  title: string
+  highlight: string
+  description: string
+  primaryLabel: string
+  primaryUrl: string
+  secondaryLabel: string
+  secondaryUrl: string
+  tags: string[]
+}
+
+export type ServicesConfig = { eyebrow: string; title: string; description: string; items: IconItem[] }
+export type PortfolioItem = { image: string; title: string; category: string; description: string }
+export type PortfolioConfig = { eyebrow: string; title: string; description: string; items: PortfolioItem[] }
+export type AboutConfig = {
+  eyebrow: string
+  titleBefore: string
+  titleHighlight: string
+  titleAfter: string
+  description: string
+  values: IconItem[]
+  stats: StatItem[]
+}
+export type ProcessConfig = {
+  eyebrow: string
+  titleBefore: string
+  titleHighlight: string
+  titleMiddle: string
+  titleAfter: string
+  description: string
+  steps: IconItem[]
+}
+export type TestimonialsConfig = { eyebrow: string; title: string; description: string; items: TestimonialItem[] }
+export type FaqConfig = { eyebrow: string; title: string; description: string; items: FaqItem[] }
+export type ContactConfig = {
+  eyebrow: string
+  titleBefore: string
+  titleHighlight: string
+  titleAfter: string
+  description: string
+  ctaLabel: string
+  ctaUrl: string
+  ctaNote: string
+  visitEyebrow: string
+  visitTitle: string
+  addressLabel: string
+  addressLines: string[]
+  mapLabel: string
+  mapUrl: string
+  mapEmbedUrl: string
+  phoneLabel: string
+  phone: string
+  phoneUrl: string
+  hoursLabel: string
+  hoursLines: string[]
+  hoursStructured: OpeningHours[]
+}
+export type FooterConfig = { navigationTitle: string; socialTitle: string; socials: SocialItem[]; note: string }
+export type ColorsConfig = {
+  primary: string
+  primaryForeground: string
+  background: string
+  foreground: string
+  mutedForeground: string
+  heroGlow: string
+}
+
+export type SiteConfig = {
+  meta: MetaConfig
+  brand: BrandConfig
+  navbar: NavbarConfig
+  hero: HeroConfig
+  services: ServicesConfig
+  portfolio: PortfolioConfig
+  about: AboutConfig
+  process: ProcessConfig
+  testimonials: TestimonialsConfig
+  faq: FaqConfig
+  contact: ContactConfig
+  footer: FooterConfig
+  colors: ColorsConfig
+}
+
+/* ------------------------------------------------------------------ *
+ * ESQUELETO NEUTRO — usado como base do merge.
+ * Garante que nenhum cliente quebre o site por campo faltando e serve
+ * de documentação viva de todos os campos disponíveis.
+ * ------------------------------------------------------------------ */
+
+export const emptySiteConfig: SiteConfig = {
+  meta: {
+    title: "Nome da Empresa | Serviço principal em Cidade - UF",
+    description: "Descreva em uma frase o que a empresa faz, para quem e onde atende.",
+    keywords: ["serviço principal cidade"],
+    siteUrl: "https://exemplo.com.br",
+    locale: "pt_BR",
+    ogTitle: "Nome da Empresa | Serviço principal",
+    ogDescription: "Resumo do negócio para compartilhamento em redes sociais.",
+    themeColor: "#3f9f5b",
+    business: {
+      type: "LocalBusiness",
+      legalName: "Nome da Empresa",
+      priceRange: "$$",
+      areaServed: "Cidade e região - UF",
+      currency: "BRL",
+      latitude: "",
+      longitude: "",
+      address: { street: "", district: "", city: "", region: "", postalCode: "", country: "BR" },
+      sameAs: [],
+    },
+  },
+  brand: {
+    logoIcon: "✿",
+    name: "Nome da Empresa",
+    tagline: "Slogan curto",
+    copyright: "© 2025 Nome da Empresa. Todos os direitos reservados.",
+    whatsappUrl: "https://wa.me/5500000000000",
+    instagramUrl: "",
+    email: "",
+    phoneLabel: "(00) 00000-0000",
+    phoneUrl: "tel:+5500000000000",
+  },
+  navbar: {
+    links: [
+      { label: "Serviços", href: "#servicos" },
+      { label: "Sobre nós", href: "#sobre-nos" },
+      { label: "Contato", href: "#contato" },
+    ],
+    ctaLabel: "Falar no WhatsApp",
+    ctaUrl: "https://wa.me/5500000000000",
+    menuTitle: "Menu",
+    menuDescription: "Navegue pelas seções do site",
+    menuToggleLabel: "Abrir menu",
+    themeToggleLabel: "Alternar tema",
+  },
+  hero: {
+    eyebrow: "Categoria principal",
+    title: "Título principal da página",
+    highlight: "com destaque",
+    description: "Explique o benefício principal, para quem é e qual é o próximo passo.",
+    primaryLabel: "Falar no WhatsApp",
+    primaryUrl: "https://wa.me/5500000000000",
+    secondaryLabel: "Ver serviços",
+    secondaryUrl: "#servicos",
+    tags: ["Diferencial 1", "Diferencial 2"],
+  },
+  services: { eyebrow: "O que oferecemos", title: "Nossos serviços", description: "Resumo dos serviços.", items: [] },
+  portfolio: {
+    eyebrow: "Portfólio",
+    title: "Um pouco do nosso trabalho",
+    description: "Fotos reais de projetos, produtos e ambientes.",
+    items: [],
+  },
+  about: {
+    eyebrow: "Sobre nós",
+    titleBefore: "Quem",
+    titleHighlight: "somos",
+    titleAfter: "",
+    description: "História e diferenciais da empresa.",
+    values: [],
+    stats: [],
+  },
+  process: {
+    eyebrow: "Como funciona",
+    titleBefore: "Do",
+    titleHighlight: "primeiro contato",
+    titleMiddle: "ao",
+    titleAfter: "resultado final",
+    description: "Explique o passo a passo do atendimento.",
+    steps: [],
+  },
+  testimonials: { eyebrow: "Depoimentos", title: "Quem conhece, recomenda", description: "Resumo das avaliações.", items: [] },
+  faq: { eyebrow: "Perguntas frequentes", title: "Ainda tem dúvida?", description: "Dúvidas mais comuns.", items: [] },
+  contact: {
+    eyebrow: "Próximo passo",
+    titleBefore: "Vamos",
+    titleHighlight: "conversar",
+    titleAfter: "?",
+    description: "Explique como o cliente pode entrar em contato.",
+    ctaLabel: "Falar no WhatsApp",
+    ctaUrl: "https://wa.me/5500000000000",
+    ctaNote: "Respondemos rápido.",
+    visitEyebrow: "Visite a loja",
+    visitTitle: "Estamos perto de você",
+    addressLabel: "Endereço",
+    addressLines: [],
+    mapLabel: "Abrir no Google Maps",
+    mapUrl: "",
+    mapEmbedUrl: "",
+    phoneLabel: "Telefone",
+    phone: "(00) 00000-0000",
+    phoneUrl: "tel:+5500000000000",
+    hoursLabel: "Horário de atendimento",
+    hoursLines: [],
+    hoursStructured: [],
+  },
+  footer: { navigationTitle: "Navegação", socialTitle: "Redes sociais", socials: [], note: "" },
+  colors: {
+    primary: "#3f9f5b",
+    primaryForeground: "#ffffff",
+    background: "#fbfdf9",
+    foreground: "#18221b",
+    mutedForeground: "#647067",
+    heroGlow: "#d9f3de",
+  },
+}
+
+/* ------------------------------------------------------------------ *
+ * MERGE — preenche qualquer campo ausente com o esqueleto neutro,
+ * então o site nunca quebra por conteúdo incompleto.
+ * ------------------------------------------------------------------ */
+
+function mergeArray<T>(input: T[] | undefined, fallback: T[]): T[] {
+  return Array.isArray(input) ? input : fallback
 }
 
 export function mergeSiteConfig(input: unknown): SiteConfig {
   const value = (input && typeof input === "object" ? input : {}) as Partial<SiteConfig>
-  return { ...defaultSiteConfig, ...value, brand: { ...defaultSiteConfig.brand, ...(value.brand ?? {}) }, navigation: { ...defaultSiteConfig.navigation, ...(value.navigation ?? {}) }, hero: { ...defaultSiteConfig.hero, ...(value.hero ?? {}) }, services: { ...defaultSiteConfig.services, ...(value.services ?? {}), items: value.services?.items ?? defaultSiteConfig.services.items }, about: { ...defaultSiteConfig.about, ...(value.about ?? {}), values: value.about?.values ?? defaultSiteConfig.about.values, stats: value.about?.stats ?? defaultSiteConfig.about.stats }, process: { ...defaultSiteConfig.process, ...(value.process ?? {}), steps: value.process?.steps ?? defaultSiteConfig.process.steps }, testimonials: { ...defaultSiteConfig.testimonials, ...(value.testimonials ?? {}), items: value.testimonials?.items ?? defaultSiteConfig.testimonials.items }, contact: { ...defaultSiteConfig.contact, ...(value.contact ?? {}) }, footer: { ...defaultSiteConfig.footer, ...(value.footer ?? {}) }, colors: { ...defaultSiteConfig.colors, ...(value.colors ?? {}) } }
+  const base = emptySiteConfig
+  return {
+    meta: { ...base.meta, ...(value.meta ?? {}), business: { ...base.meta.business, ...(value.meta?.business ?? {}), address: { ...base.meta.business.address, ...(value.meta?.business?.address ?? {}) }, sameAs: mergeArray(value.meta?.business?.sameAs, base.meta.business.sameAs), } },
+    brand: { ...base.brand, ...(value.brand ?? {}) },
+    navbar: { ...base.navbar, ...(value.navbar ?? {}), links: mergeArray(value.navbar?.links, base.navbar.links) },
+    hero: { ...base.hero, ...(value.hero ?? {}), tags: mergeArray(value.hero?.tags, base.hero.tags) },
+    services: { ...base.services, ...(value.services ?? {}), items: mergeArray(value.services?.items, base.services.items) },
+    portfolio: { ...base.portfolio, ...(value.portfolio ?? {}), items: mergeArray(value.portfolio?.items, base.portfolio.items) },
+    about: { ...base.about, ...(value.about ?? {}), values: mergeArray(value.about?.values, base.about.values), stats: mergeArray(value.about?.stats, base.about.stats) },
+    process: { ...base.process, ...(value.process ?? {}), steps: mergeArray(value.process?.steps, base.process.steps) },
+    testimonials: { ...base.testimonials, ...(value.testimonials ?? {}), items: mergeArray(value.testimonials?.items, base.testimonials.items) },
+    faq: { ...base.faq, ...(value.faq ?? {}), items: mergeArray(value.faq?.items, base.faq.items) },
+    contact: { ...base.contact, ...(value.contact ?? {}), addressLines: mergeArray(value.contact?.addressLines, base.contact.addressLines), hoursLines: mergeArray(value.contact?.hoursLines, base.contact.hoursLines), hoursStructured: mergeArray(value.contact?.hoursStructured, base.contact.hoursStructured) },
+    footer: { ...base.footer, ...(value.footer ?? {}), socials: mergeArray(value.footer?.socials, base.footer.socials) },
+    colors: { ...base.colors, ...(value.colors ?? {}) },
+  }
 }
 
-export function siteConfigCss(config: SiteConfig) { return { "--site-primary": config.colors.primary, "--site-background": config.colors.background, "--site-foreground": config.colors.foreground, "--site-muted": config.colors.mutedForeground, "--site-hero-glow": config.colors.heroGlow } as React.CSSProperties }
+/** Conteúdo do site (fonte única). Lido em tempo de build. */
+export const siteConfig: SiteConfig = mergeSiteConfig(rawConfig)
+
+/** URL pública do site (permite sobrescrever por variável de ambiente). */
+export function siteUrl(config: SiteConfig = siteConfig) {
+  const fromEnv = process.env.NEXT_PUBLIC_SITE_URL
+  const url = (fromEnv && fromEnv.trim()) || config.meta.siteUrl || "https://exemplo.com.br"
+  return url.startsWith("http") ? url : `https://${url}`
+}
+
+/**
+ * CSS das cores escolhidas no painel.
+ *
+ * Usa especificidade maior que :root/.dark para vencer a ordem de carregamento:
+ * - html:root  -> aplica as cores de marca nos dois temas (claro e escuro)
+ * - html:not(.dark) -> aplica a paleta clara só quando o tema claro está ativo
+ */
+export function siteThemeCss(config: SiteConfig) {
+  const c = config.colors
+  return [
+    `html:root{--primary:${c.primary};--primary-foreground:${c.primaryForeground};--site-hero-glow:${c.heroGlow}}`,
+    `html:not(.dark){--background:${c.background};--foreground:${c.foreground};--muted-foreground:${c.mutedForeground}}`,
+  ].join("\n")
+}
+
+/** Endereço em texto (usado em dados estruturados e conferência do painel). */
+export function addressOneLine(config: SiteConfig = siteConfig) {
+  const a = config.meta.business.address
+  return [a.street, a.district, `${a.city} - ${a.region}`, a.postalCode].filter(Boolean).join(", ")
+}
+
+/** Telefone só com dígitos e prefixo internacional (formato aceito pelo schema.org). */
+export function phoneE164(config: SiteConfig = siteConfig) {
+  const digits = (config.brand.phoneUrl || config.contact.phone || "").replace(/\D/g, "")
+  return digits ? `+${digits}` : ""
+}
