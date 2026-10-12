@@ -12,6 +12,11 @@ import { mergeSiteConfig, siteConfig, type SiteConfig } from "@/lib/site-config"
  *   `GITHUB_TOKEN` e o painel passa a gravar o próprio `content/site-config.json` no
  *   repositório via API do GitHub. O site lê a versão mais recente de lá a cada
  *   requisição, então o "Salvar" já aparece no site sem precisar recompilar.
+ *
+ * Sobre o repositório: defina `GITHUB_REPO` ("dono/repo") **ou** deixe em branco — quando o
+ * site roda na Vercel, o próprio deployment informa em qual repositório está
+ * (`VERCEL_GIT_REPO_OWNER` + `VERCEL_GIT_REPO_SLUG`), então cada site clonado do template
+ * já sabe sozinho onde gravar. Basta o token (`GITHUB_TOKEN`).
  */
 
 const DEFAULT_CONFIG_PATH = "content/site-config.json"
@@ -41,12 +46,36 @@ type FetchLike = typeof fetch
 /** Variáveis de ambiente (aceita objeto parcial nos testes). */
 type EnvLike = Record<string, string | undefined>
 
+/** Valida e devolve "dono/repo", ou null quando o formato está inválido. */
+function validRepo(value: string | undefined): string | null {
+  const repo = (value ?? "").trim()
+  if (!/^[^\s/]+\/[^\s/]+$/.test(repo)) return null
+  return repo
+}
+
+/**
+ * Descobre em qual repositório o painel deve gravar.
+ *
+ * 1. `GITHUB_REPO` (quando definido) tem prioridade — útil em host que não é Vercel.
+ * 2. Sem ele, usa o repositório que a Vercel informa para este deployment
+ *    (`VERCEL_GIT_REPO_OWNER` + `VERCEL_GIT_REPO_SLUG`). É isto que faz cada site
+ *    clonado do template saber sozinho qual é o seu repositório, sem configurar nada.
+ */
+export function resolveGithubRepo(env: EnvLike = process.env): string | null {
+  const explicit = validRepo(env.GITHUB_REPO)
+  if (explicit) return explicit
+
+  const owner = env.VERCEL_GIT_REPO_OWNER?.trim()
+  const slug = env.VERCEL_GIT_REPO_SLUG?.trim()
+  if (!owner || !slug) return null
+  return validRepo(`${owner}/${slug}`)
+}
+
 /** Lê a configuração do GitHub a partir do ambiente (ou null quando não configurada). */
 export function githubStoreConfig(env: EnvLike = process.env): GithubStoreConfig | null {
-  const repo = env.GITHUB_REPO?.trim()
+  const repo = resolveGithubRepo(env)
   const token = env.GITHUB_TOKEN?.trim()
   if (!repo || !token) return null
-  if (!/^[^\s/]+\/[^\s/]+$/.test(repo)) return null
   return {
     repo,
     token,
@@ -204,8 +233,9 @@ export async function writeStoredConfig(config: SiteConfig): Promise<WriteResult
       return {
         ok: false,
         message:
-          `Não foi possível gravar no GitHub (${detail}). Confira GITHUB_REPO e GITHUB_BRANCH, ` +
-          "e use um token com permissão “Contents: Read and write”.",
+          `Não foi possível gravar no GitHub (${detail}). O painel tentou o repositório ` +
+          `“${github.repo}” (branch “${github.branch}”): confira se o GITHUB_TOKEN é válido e ` +
+          "tem permissão “Contents: Read and write” nesse repositório.",
       }
     }
   }
@@ -220,8 +250,8 @@ export async function writeStoredConfig(config: SiteConfig): Promise<WriteResult
       ok: false,
       message:
         "Este ambiente não permite gravar arquivos. Para salvar direto pelo painel, defina " +
-        "GITHUB_REPO e GITHUB_TOKEN (veja o README). Enquanto isso, use “Baixar JSON” e " +
-        "substitua content/site-config.json no repositório.",
+        "GITHUB_TOKEN (na Vercel o repositório é identificado sozinho; veja o README). " +
+        "Enquanto isso, use “Baixar JSON” e substitua content/site-config.json no repositório.",
     }
   }
 }

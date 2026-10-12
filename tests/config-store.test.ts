@@ -9,6 +9,7 @@ import {
   isGithubStoreConfigured,
   normalizeConfigPath,
   readGithubConfig,
+  resolveGithubRepo,
   readStoredConfig,
   serializeConfig,
   writeGithubConfig,
@@ -60,6 +61,47 @@ describe("githubStoreConfig / isGithubStoreConfigured", () => {
       GITHUB_CONFIG_PATH: "/dados/site.json",
     })
     expect(config).toMatchObject({ branch: "producao", configPath: "dados/site.json" })
+  })
+})
+
+describe("resolveGithubRepo (auto-identificação do repositório)", () => {
+  it("prioriza GITHUB_REPO quando definido", () => {
+    expect(
+      resolveGithubRepo({
+        GITHUB_REPO: "dono/explicito",
+        VERCEL_GIT_REPO_OWNER: "outro",
+        VERCEL_GIT_REPO_SLUG: "site",
+      }),
+    ).toBe("dono/explicito")
+  })
+
+  it("deduz o repositório a partir das variáveis da Vercel", () => {
+    expect(resolveGithubRepo({ VERCEL_GIT_REPO_OWNER: "alex", VERCEL_GIT_REPO_SLUG: "horto-semear" })).toBe(
+      "alex/horto-semear",
+    )
+  })
+
+  it("ignora um GITHUB_REPO inválido e cai nas variáveis da Vercel", () => {
+    expect(
+      resolveGithubRepo({ GITHUB_REPO: "sem-barra", VERCEL_GIT_REPO_OWNER: "alex", VERCEL_GIT_REPO_SLUG: "cliente" }),
+    ).toBe("alex/cliente")
+  })
+
+  it("devolve null quando falta informação", () => {
+    expect(resolveGithubRepo({})).toBeNull()
+    expect(resolveGithubRepo({ VERCEL_GIT_REPO_OWNER: "alex" })).toBeNull()
+    expect(resolveGithubRepo({ VERCEL_GIT_REPO_SLUG: "cliente" })).toBeNull()
+    expect(resolveGithubRepo({ GITHUB_REPO: "sem-barra" })).toBeNull()
+  })
+
+  it("na Vercel basta o token: a config é montada sozinha", () => {
+    const env = { GITHUB_TOKEN: "t", VERCEL_GIT_REPO_OWNER: "alex", VERCEL_GIT_REPO_SLUG: "cliente" }
+    expect(githubStoreConfig(env)).toMatchObject({ repo: "alex/cliente", token: "t", branch: "main" })
+    expect(isGithubStoreConfigured(env)).toBe(true)
+  })
+
+  it("continua nulo sem token, mesmo na Vercel", () => {
+    expect(githubStoreConfig({ VERCEL_GIT_REPO_OWNER: "alex", VERCEL_GIT_REPO_SLUG: "cliente" })).toBeNull()
   })
 })
 
@@ -148,6 +190,8 @@ describe("readStoredConfig / writeStoredConfig", () => {
     clearConfigCache()
     delete process.env.GITHUB_REPO
     delete process.env.GITHUB_TOKEN
+    delete process.env.VERCEL_GIT_REPO_OWNER
+    delete process.env.VERCEL_GIT_REPO_SLUG
   })
   afterEach(() => {
     clearConfigCache()
@@ -163,6 +207,23 @@ describe("readStoredConfig / writeStoredConfig", () => {
     const { config, source } = await readStoredConfig({ fresh: true })
     expect(source).toBe("github")
     expect(config.brand.name).toBe("Do GitHub")
+  })
+
+  it("na Vercel lê/greve no repositório deduzido (só o token é configurado)", async () => {
+    delete process.env.GITHUB_REPO
+    process.env.GITHUB_TOKEN = "t"
+    process.env.VERCEL_GIT_REPO_OWNER = "alex"
+    process.env.VERCEL_GIT_REPO_SLUG = "cliente"
+    const urls: string[] = []
+    const fetchImpl = vi.fn(async (url: string) => {
+      urls.push(url)
+      return text(JSON.stringify(REMOTE))
+    })
+    vi.stubGlobal("fetch", fetchImpl)
+
+    const { source } = await readStoredConfig({ fresh: true })
+    expect(source).toBe("github")
+    expect(urls[0]).toContain("repos/alex/cliente/contents/content/site-config.json")
   })
 
   it("cai no arquivo local quando o GitHub falha", async () => {

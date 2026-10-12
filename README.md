@@ -131,11 +131,15 @@ gravação para o próprio repositório:
    acesso ao repositório do site e permissão **Contents: Read and write**.
 2. No host (ex.: Vercel → *Settings → Environment Variables*), defina:
    ```bash
-   GITHUB_REPO=seu-usuario/seu-repo
-   GITHUB_TOKEN=github_pat_...
+   GITHUB_TOKEN=github_pat_...             # obrigatório
+   GITHUB_REPO=seu-usuario/seu-repo        # OPCIONAL na Vercel (ver abaixo)
    GITHUB_BRANCH=main                      # opcional
    GITHUB_CONFIG_PATH=content/site-config.json   # opcional
    ```
+   **Na Vercel o `GITHUB_REPO` é opcional:** o próprio deployment informa em qual
+   repositório está (`VERCEL_GIT_REPO_OWNER` + `VERCEL_GIT_REPO_SLUG`), então cada site
+   clonado do template já sabe sozinho onde gravar — basta o token. Use `GITHUB_REPO`
+   quando o host não for Vercel ou para forçar outro repositório (ele tem prioridade).
 3. Ao clicar em **Salvar**, o painel grava `content/site-config.json` no repositório (um commit).
    O site lê essa versão a cada requisição, então a alteração aparece **na hora, sem recompilar**.
    Como é um commit, o deploy automático do host também roda e atualiza o SEO do build.
@@ -197,7 +201,7 @@ Veja `.env.example`. Nenhuma é obrigatória para rodar localmente.
 | `ADMIN_KEY` | Chave extra exigida no cabeçalho `x-admin-key` para salvar |
 | `NEXT_PUBLIC_SITE_URL` | URL pública final do site (SEO, canonical, sitemap) |
 | `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION` | Código de verificação do Search Console |
-| `GITHUB_REPO` | `dono/repo` do site — liga a gravação do painel no GitHub |
+| `GITHUB_REPO` | `dono/repo` do site — **opcional na Vercel** (o repo é deduzido do deployment); tem prioridade quando definido |
 | `GITHUB_TOKEN` | Token com permissão `Contents: Read and write` (só no servidor) |
 | `GITHUB_BRANCH` | Branch onde o JSON é gravado (padrão `main`, opcional) |
 | `GITHUB_CONFIG_PATH` | Caminho do JSON no repositório (padrão `content/site-config.json`, opcional) |
