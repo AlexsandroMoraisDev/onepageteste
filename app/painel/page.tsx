@@ -5,6 +5,7 @@ import { Check, Copy, Download, ExternalLink, Loader2, RotateCcw, Save, Upload }
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { FieldEditor } from "@/components/painel/field-editor"
 import { applyChange } from "@/components/painel/field-editor"
@@ -23,17 +24,30 @@ export default function PainelPage() {
   // A chave de acesso (ADMIN_KEY) fica só na sessão do navegador.
   const [adminKey, setAdminKey] = useState(readAdminKey)
   const [pasted, setPasted] = useState("")
+  // Portão de entrada: quando o servidor exige ADMIN_KEY, o painel só abre com a senha.
+  const [locked, setLocked] = useState(false)
+  const [keyDraft, setKeyDraft] = useState("")
+  const [unlocking, setUnlocking] = useState(false)
+  const [lockError, setLockError] = useState("")
   const fileInput = useRef<HTMLInputElement>(null)
 
-  // Carrega (e recarrega, quando o token muda) o conteúdo vindo da API.
+  // Carrega (e recarrega) o conteúdo vindo da API.
+  // 401 = o servidor exige a senha: mostramos o portão de entrada em vez do editor.
   useEffect(() => {
     let cancelled = false
     void (async () => {
       try {
-        const response = await fetch("/api/site-config", { cache: "no-store" })
+        const response = await fetch("/api/site-config", { cache: "no-store", headers: adminHeaders() })
+        if (response.status === 401) {
+          if (!cancelled) setLocked(true)
+          return
+        }
         if (!response.ok) throw new Error("falha ao carregar")
         const data = mergeSiteConfig(await response.json())
-        if (!cancelled) setConfig(data)
+        if (!cancelled) {
+          setConfig(data)
+          setLocked(false)
+        }
       } catch {
         if (!cancelled) setStatus({ kind: "error", message: "Não foi possível carregar o conteúdo do site." })
       }
@@ -42,6 +56,30 @@ export default function PainelPage() {
       cancelled = true
     }
   }, [reloadToken])
+
+  /** Valida a senha digitada e abre o painel. */
+  async function unlock() {
+    const key = keyDraft.trim()
+    if (!key) return
+    setUnlocking(true)
+    setLockError("")
+    try {
+      const response = await fetch("/api/site-config", { cache: "no-store", headers: { "x-admin-key": key } })
+      if (response.status === 401) {
+        setLockError("Senha incorreta. Confira e tente novamente.")
+        return
+      }
+      if (!response.ok) throw new Error("falha")
+      saveAdminKey(key)
+      setAdminKey(key)
+      setConfig(mergeSiteConfig(await response.json()))
+      setLocked(false)
+    } catch {
+      setLockError("Não foi possível entrar. Tente novamente.")
+    } finally {
+      setUnlocking(false)
+    }
+  }
 
   const change = useCallback((path: ConfigPath, value: unknown) => {
     setConfig((current) => (current ? applyChange(current, path, value) : current))
@@ -82,14 +120,20 @@ export default function PainelPage() {
         body: JSON.stringify(config),
         cache: "no-store",
       })
-      const result = (await response.json()) as { message?: string }
+      const result = (await response.json().catch(() => ({}))) as { message?: string }
+      if (response.status === 401) {
+        throw new Error("Senha do painel incorreta ou ausente. Informe a senha em “Acesso” e salve de novo.")
+      }
       if (!response.ok) throw new Error(result.message ?? "falha ao salvar")
       setConfig(mergeSiteConfig(result))
       setStatus({ kind: "ok", message: "Conteúdo salvo em content/site-config.json. O site já mostra a alteração." })
     } catch (error) {
+      const message = error instanceof Error ? error.message : "Não foi possível salvar."
       setStatus({
         kind: "error",
-        message: `${error instanceof Error ? error.message : "Não foi possível salvar."} — use “Baixar JSON” e substitua o arquivo content/site-config.json.`,
+        message: message.startsWith("Senha do painel")
+          ? message
+          : `${message} — use “Baixar JSON” e substitua o arquivo content/site-config.json.`,
       })
     } finally {
       setBusy(false)
@@ -112,6 +156,38 @@ export default function PainelPage() {
     } catch {
       setStatus({ kind: "error", message: "Não foi possível copiar. Use “Baixar JSON”." })
     }
+  }
+
+  if (locked) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-muted/30 px-4">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Painel do site</CardTitle>
+            <CardDescription>Digite a senha de acesso para editar o conteúdo.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            <Label htmlFor="admin-key">Senha do painel</Label>
+            <Input
+              id="admin-key"
+              type="password"
+              autoComplete="current-password"
+              autoFocus
+              value={keyDraft}
+              placeholder="Senha de acesso"
+              onChange={(event) => setKeyDraft(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") void unlock()
+              }}
+            />
+            {lockError ? <p className="text-sm text-destructive">{lockError}</p> : null}
+            <Button onClick={() => void unlock()} disabled={unlocking || !keyDraft.trim()}>
+              {unlocking ? <Loader2 data-icon="inline-start" className="animate-spin" /> : null} Entrar
+            </Button>
+          </CardContent>
+        </Card>
+      </main>
+    )
   }
 
   if (!config) {
@@ -229,10 +305,10 @@ export default function PainelPage() {
               </details>
 
               <details className="rounded-lg border bg-muted/20 p-3">
-                <summary className="cursor-pointer text-sm font-medium">Acesso (só se o servidor exigir chave)</summary>
+                <summary className="cursor-pointer text-sm font-medium">Trocar a senha de acesso</summary>
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Se você definiu <code>ADMIN_KEY</code> no servidor, informe a mesma chave para conseguir salvar. Ela fica
-                  apenas nesta sessão do navegador.
+                  A senha do painel (<code>ADMIN_KEY</code>) é definida no servidor. Para trocar, informe a nova aqui — ela
+                  fica apenas nesta sessão do navegador.
                 </p>
                 <Input
                   value={adminKey}

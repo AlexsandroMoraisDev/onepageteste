@@ -38,9 +38,30 @@ describe("API /api/site-config (pela ótica do painel)", () => {
     process.env.GITHUB_TOKEN = "t"
     vi.stubGlobal("fetch", vi.fn(async () => text(JSON.stringify({ brand: { name: "Do GitHub" } }))))
 
-    const response = await GET()
+    const response = await GET(request())
     expect(response.status).toBe(200)
     expect((await response.json()).brand.name).toBe("Do GitHub")
+  })
+
+  it("GET exige a senha quando ADMIN_KEY está definida (401)", async () => {
+    process.env.ADMIN_KEY = "segredo"
+    const response = await GET(request())
+    expect(response.status).toBe(401)
+  })
+
+  it("GET libera o painel com a senha correta", async () => {
+    process.env.ADMIN_KEY = "segredo"
+    const denied = await GET(request({ headers: { "x-admin-key": "errada" } }))
+    expect(denied.status).toBe(401)
+
+    const allowed = await GET(request({ headers: { "x-admin-key": "segredo" } }))
+    expect(allowed.status).toBe(200)
+    expect((await allowed.json()).brand.name).toBeTruthy()
+  })
+
+  it("GET abre sem senha quando ADMIN_KEY não está definida", async () => {
+    const response = await GET(request())
+    expect(response.status).toBe(200)
   })
 
   it("PUT grava no GitHub e responde 200 com o conteúdo salvo", async () => {

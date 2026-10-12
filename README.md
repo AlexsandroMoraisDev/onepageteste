@@ -93,10 +93,15 @@ oculto está fora do `robots.txt`.
 3. Edite os blocos na ordem em que o visitante lê a página e clique em **Salvar**.
    O painel grava direto em `content/site-config.json`.
 
-A API protege a escrita com:
-- **Origem**: requisições `PUT` de outro domínio são recusadas (403);
-- **Chave**: se `ADMIN_KEY` estiver definida, a requisição precisa enviar o cabeçalho
-  `x-admin-key` com o mesmo valor.
+O acesso é protegido por:
+- **Senha de entrada**: se `ADMIN_KEY` estiver definida, o painel **pede a senha ao abrir** —
+  sem ela o conteúdo nem é carregado. O cliente digita uma vez e a senha fica apenas na sessão
+  do navegador dele (`sessionStorage`), nunca no código nem no JSON do site.
+- **Origem**: requisições de escrita de outro domínio são recusadas (403).
+- **Chave**: a API exige o cabeçalho `x-admin-key` com o mesmo valor para ler e para salvar.
+
+> Sem `ADMIN_KEY`, o painel abre direto (útil em desenvolvimento). **Em produção, defina uma
+> senha por site** — cada projeto da Vercel tem a sua, então pode ser diferente por cliente.
 
 > ℹ️ Em host com disco gravável (VPS, Docker, `pnpm start` local) o painel grava direto no
 > arquivo. Em ambientes **serverless** (Vercel, Netlify, etc.) o disco é somente-leitura: veja

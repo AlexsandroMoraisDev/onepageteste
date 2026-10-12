@@ -12,7 +12,11 @@ export const dynamic = "force-dynamic"
 
 const noStore = { "Cache-Control": "no-store" }
 
-export async function GET() {
+export async function GET(request: Request) {
+  // O painel só abre com a senha: sem `x-admin-key` correto, nada de conteúdo.
+  const blocked = adminGuard(request)
+  if (blocked) return blocked
+
   const { config } = await readStoredConfig({ fresh: true })
   return Response.json(config, { headers: noStore })
 }
