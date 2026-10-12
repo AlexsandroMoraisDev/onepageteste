@@ -143,6 +143,28 @@ gravação para o próprio repositório:
 > Sem `GITHUB_REPO`/`GITHUB_TOKEN`, o painel continua funcionando com **Baixar JSON** +
 > substituir o arquivo no repositório (aplicado no próximo deploy).
 
+### Segurança do token do GitHub
+
+O token dá **permissão de escrita** no repositório, então trate-o como senha:
+
+- **Só o servidor vê o token.** Ele é lido apenas em `lib/config-store.ts`, nunca em
+  componente de cliente. Não use `NEXT_PUBLIC_GITHUB_TOKEN` (isso o embutiria no navegador).
+- **Escopo mínimo:** token *fine-grained*, permissão **Contents: Read and write** e
+  acesso só aos repositórios necessários. Nada de `admin`, `workflows` ou token clássico (`repo`).
+- **Validade:** defina expiração e rotacione. Se vazar, revogue na hora e gere outro.
+- **Onde guardar:** nas *Environment Variables* do host (Vercel), de Preferência marcadas
+  como **Sensitive**. Nunca em código, `.env` versionado, print ou chat.
+- **Barreira automática no repositório:** `tests/no-secrets.test.ts` varre todos os arquivos
+  versionados e **falha o CI** se encontrar um token colado por engano. `.env*` já é ignorado
+  pelo Git (só o `.env.example`, com nomes e sem valores, é versionado).
+- **Recomendado ligar no GitHub:** *Settings → Code security* → **Secret scanning** e
+  **Push protection** (bloqueia o envio de segredos antes de subirem).
+- **Para escalar (vários repos):** um **GitHub App** gera tokens de 1 hora por repositório —
+  não existe segredo de longa duração para vazar.
+
+> Um único token pode cobrir todos os seus repositórios de clientes (mais prático). O custo é
+> o raio de alcance: se vazar, vale para todos. Um token por repositório isola o risco.
+
 ### Opção 2 — editar o JSON diretamente
 
 Abra `content/site-config.json` e altere os campos. Qualquer campo ausente é preenchido
