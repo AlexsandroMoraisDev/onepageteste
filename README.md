@@ -71,6 +71,7 @@ lib/
   panel-sections.ts     # ordem dos blocos no painel + rótulos em português
   config-utils.ts       # utilidades de edição (atualizar/mover/remover itens)
   icons.ts              # mapa de ícones disponíveis no painel
+  config-store.ts       # onde o conteúdo é lido/gravado (disco local ou GitHub)
 ```
 
 ---
@@ -97,9 +98,9 @@ A API protege a escrita com:
 - **Chave**: se `ADMIN_KEY` estiver definida, a requisição precisa enviar o cabeçalho
   `x-admin-key` com o mesmo valor.
 
-> ⚠️ Em ambientes **serverless** (Vercel, etc.) o disco não é gravável de forma persistente.
-> Nesse caso o botão Salvar avisa e você deve usar **Baixar JSON** e substituir
-> `content/site-config.json` no repositório (o conteúdo é aplicado no próximo deploy).
+> ℹ️ Em host com disco gravável (VPS, Docker, `pnpm start` local) o painel grava direto no
+> arquivo. Em ambientes **serverless** (Vercel, Netlify, etc.) o disco é somente-leitura: veja
+> **“Salvar pelo painel em host serverless”** abaixo para ligar a gravação no GitHub.
 
 ### Portfólio de fotos (upload pelo painel)
 
@@ -119,6 +120,28 @@ Comportamento automático do site:
 
 > Em ambiente serverless, grave as fotos em um host de imagens e cole o endereço no campo
 > “Foto”, ou faça o upload localmente e commite a pasta `content/uploads/`.
+
+### Salvar pelo painel em host serverless (GitHub)
+
+Em **Vercel/Netlify** o disco é somente-leitura: gravar em `content/site-config.json` no disco
+não persiste (o botão Salvar avisa). Para o painel salvar de verdade nesses hosts, aponte a
+gravação para o próprio repositório:
+
+1. Crie um **token do GitHub** em *Settings → Developer settings → Fine-grained tokens*, com
+   acesso ao repositório do site e permissão **Contents: Read and write**.
+2. No host (ex.: Vercel → *Settings → Environment Variables*), defina:
+   ```bash
+   GITHUB_REPO=seu-usuario/seu-repo
+   GITHUB_TOKEN=github_pat_...
+   GITHUB_BRANCH=main                      # opcional
+   GITHUB_CONFIG_PATH=content/site-config.json   # opcional
+   ```
+3. Ao clicar em **Salvar**, o painel grava `content/site-config.json` no repositório (um commit).
+   O site lê essa versão a cada requisição, então a alteração aparece **na hora, sem recompilar**.
+   Como é um commit, o deploy automático do host também roda e atualiza o SEO do build.
+
+> Sem `GITHUB_REPO`/`GITHUB_TOKEN`, o painel continua funcionando com **Baixar JSON** +
+> substituir o arquivo no repositório (aplicado no próximo deploy).
 
 ### Opção 2 — editar o JSON diretamente
 
@@ -152,6 +175,10 @@ Veja `.env.example`. Nenhuma é obrigatória para rodar localmente.
 | `ADMIN_KEY` | Chave extra exigida no cabeçalho `x-admin-key` para salvar |
 | `NEXT_PUBLIC_SITE_URL` | URL pública final do site (SEO, canonical, sitemap) |
 | `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION` | Código de verificação do Search Console |
+| `GITHUB_REPO` | `dono/repo` do site — liga a gravação do painel no GitHub |
+| `GITHUB_TOKEN` | Token com permissão `Contents: Read and write` (só no servidor) |
+| `GITHUB_BRANCH` | Branch onde o JSON é gravado (padrão `main`, opcional) |
+| `GITHUB_CONFIG_PATH` | Caminho do JSON no repositório (padrão `content/site-config.json`, opcional) |
 
 ---
 
@@ -173,4 +200,5 @@ pnpm build
 pnpm start
 ```
 
-Lembre-se: em host serverless, o painel não salva em disco — edite o JSON e faça deploy.
+Lembre-se: em host serverless, o disco é somente-leitura. Para o botão **Salvar** funcionar,
+configure a gravação no GitHub (seção “Salvar pelo painel em host serverless”).

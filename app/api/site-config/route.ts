@@ -1,26 +1,20 @@
-import { readFile, writeFile } from "node:fs/promises"
-import path from "node:path"
 import { adminGuard } from "@/lib/admin-guard"
-import { mergeSiteConfig, siteConfig } from "@/lib/site-config"
+import { mergeSiteConfig } from "@/lib/site-config"
+import { readStoredConfig, writeStoredConfig } from "@/lib/config-store"
 
 /**
  * API usada SOMENTE pelo painel de conteúdo.
- * Fonte única: content/site-config.json (sem banco de dados).
+ * Fonte única: content/site-config.json — no disco local ou no repositório do
+ * GitHub (quando GITHUB_REPO/GITHUB_TOKEN estão definidos, ver lib/config-store.ts).
  */
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-const configFile = path.join(process.cwd(), "content", "site-config.json")
 const noStore = { "Cache-Control": "no-store" }
 
 export async function GET() {
-  try {
-    const raw = await readFile(configFile, "utf8")
-    return Response.json(mergeSiteConfig(JSON.parse(raw)), { headers: noStore })
-  } catch {
-    // Sem arquivo (ou JSON inválido) o painel carrega o conteúdo embutido no bundle.
-    return Response.json(siteConfig, { headers: noStore })
-  }
+  const { config } = await readStoredConfig({ fresh: true })
+  return Response.json(config, { headers: noStore })
 }
 
 export async function PUT(request: Request) {
@@ -35,13 +29,9 @@ export async function PUT(request: Request) {
   }
 
   const config = mergeSiteConfig(payload)
-  try {
-    await writeFile(configFile, `${JSON.stringify(config, null, 2)}\n`, "utf8")
-    return Response.json(config, { headers: noStore })
-  } catch {
-    return Response.json(
-      { message: "Este ambiente não permite gravar arquivos. Baixe o JSON e substitua content/site-config.json." },
-      { status: 501, headers: noStore },
-    )
+  const result = await writeStoredConfig(config)
+  if (!result.ok) {
+    return Response.json({ message: result.message }, { status: 501, headers: noStore })
   }
+  return Response.json(config, { headers: noStore })
 }

@@ -26,6 +26,32 @@ describe("adminGuard", () => {
     expect(adminGuard(request())).toBeNull()
   })
 
+  it("aceita quando a Origin bate com o cabeçalho Host (mesmo se request.url for localhost)", () => {
+    // Next pode montar request.url com host interno (ex.: localhost:3100) mesmo
+    // quando o navegador acessa por outro host. A comparação usa o Host real.
+    const req = new Request(ENDPOINT, {
+      method: "PUT",
+      headers: { origin: "https://buscavidagarden.com.br", host: "buscavidagarden.com.br" },
+    })
+    expect(adminGuard(req)).toBeNull()
+  })
+
+  it("aceita via x-forwarded-host (proxy/domínio próprio)", () => {
+    const req = new Request(ENDPOINT, {
+      method: "PUT",
+      headers: { origin: "https://site-do-cliente.com.br", "x-forwarded-host": "site-do-cliente.com.br" },
+    })
+    expect(adminGuard(req)).toBeNull()
+  })
+
+  it("bloqueia quando a Origin não bate com o Host (403)", () => {
+    const req = new Request(ENDPOINT, {
+      method: "PUT",
+      headers: { origin: "https://invasor.example", host: "buscavidagarden.com.br" },
+    })
+    expect(adminGuard(req)?.status).toBe(403)
+  })
+
   it("bloqueia origem externa com 403 (proteção CSRF)", async () => {
     const blocked = adminGuard(request({ origin: "https://invasor.example" }))
     expect(blocked?.status).toBe(403)
