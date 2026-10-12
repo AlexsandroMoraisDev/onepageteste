@@ -54,7 +54,7 @@ app/
   page.tsx              # monta a página na ordem das seções
   globals.css           # design tokens (Tailwind) + variáveis de tema
   api/site-config/      # API que lê/grava content/site-config.json (usada pelo painel)
-  api/uploads/          # recebe as fotos do painel e as serve de content/uploads/
+  api/uploads/          # fotos do painel: recebe (uma ou em lote) e serve (disco ou GitHub)
   painel/               # editor de conteúdo (rota oculta — ver abaixo)
   robots.ts, sitemap.ts # SEO
   opengraph-image.tsx   # imagem de compartilhamento 1200x630 gerada no build
@@ -65,7 +65,7 @@ components/
   painel/field-editor.tsx  # editor genérico de campos (texto, lista, ícone, cor)
 content/
   site-config.json      # ✅ FONTE ÚNICA DE CONTEÚDO
-  uploads/              # fotos enviadas pelo painel
+  uploads/              # fotos enviadas pelo painel (disco; com GITHUB_TOKEN vão ao repositório)
 lib/
   site-config.ts        # tipos, esqueleto neutro, merge e CSS das cores
   panel-sections.ts     # ordem dos blocos no painel + rótulos em português
@@ -104,13 +104,16 @@ A API protege a escrita com:
 
 ### Portfólio de fotos (upload pelo painel)
 
-No bloco **“5. Portfólio (fotos)”** do painel, clique em **Adicionar** e:
-1. **Foto** — clique em *Escolher arquivo* e envie a imagem do computador
-   (JPG, PNG, WEBP, GIF ou AVIF, até 8 MB). A foto é gravada em `content/uploads/`
-   e o endereço (`/api/uploads/...`) é preenchido automaticamente. Também é possível
-   colar o endereço de uma imagem já hospedada.
-2. **Título**, **Categoria** e **Descrição** — opcionais, mas ajudam no Google e no visual.
-3. Clique em **Salvar**.
+No bloco **“5. Portfólio (fotos)”** do painel há dois caminhos:
+- **Enviar várias fotos** — escolha várias imagens de uma vez; o painel cria um item por foto.
+  Na Vercel (com `GITHUB_TOKEN`) todas entram no repositório em **um único commit** (1 deploy).
+- **Adicionar** (item a item) — crie um item e:
+  1. **Foto** — clique em *Escolher arquivo* e envie a imagem do computador
+     (JPG, PNG, WEBP, GIF ou AVIF, até 8 MB). O endereço (`/api/uploads/...`) é
+     preenchido automaticamente. Também é possível colar o endereço de uma imagem já hospedada.
+  2. **Título**, **Categoria** e **Descrição** — opcionais, mas ajudam no Google e no visual.
+
+Depois, clique em **Salvar** (uma vez salva todas as fotos).
 
 Comportamento automático do site:
 - **Com uma ou mais fotos**: a seção `#portfolio` aparece entre “Serviços” e “Sobre nós”,
@@ -118,8 +121,9 @@ Comportamento automático do site:
 - **Sem nenhuma foto**: a seção **não é exibida** e o item de menu “Portfólio”
   também **desaparece** sozinho — o site nunca mostra uma seção vazia.
 
-> Em ambiente serverless, grave as fotos em um host de imagens e cole o endereço no campo
-> “Foto”, ou faça o upload localmente e commite a pasta `content/uploads/`.
+> Em host com disco gravável (VPS/Docker/`pnpm start`) a foto vai para `content/uploads/` no disco.
+> Em host **serverless** (Vercel), defina `GITHUB_TOKEN` e a foto vai para o repositório do
+> próprio site — o painel cria o link sozinho, sem precisar hospedar a imagem fora.
 
 ### Salvar pelo painel em host serverless (GitHub)
 
