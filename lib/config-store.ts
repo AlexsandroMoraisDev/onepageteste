@@ -316,3 +316,90 @@ export async function writeStoredConfig(config: SiteConfig): Promise<WriteResult
     }
   }
 }
+
+/** Um arquivo (caminho no repositório + bytes) para gravar em um único commit. */
+export interface GithubFileEntry {
+  path: string
+  bytes: Uint8Array
+}
+
+/**
+ * Grava VÁRIOS arquivos em um ÚNICO commit (API de Git do GitHub).
+ *
+ * Cada arquivo vira um "blob"; todos entram na mesma árvore e no mesmo commit —
+ * então 20 fotos geram 1 commit (e 1 deploy) em vez de 20.
+ * Lança em caso de falha.
+ */
+export async function writeGithubFiles(
+  config: GithubStoreConfig,
+  entries: GithubFileEntry[],
+  message: string,
+  fetchImpl: FetchLike = fetch,
+): Promise<void> {
+  if (entries.length === 0) return
+  const api = `https://api.github.com/repos/${config.repo}`
+  const auth = githubHeaders(config, "application/vnd.github+json")
+  const jsonHeaders = { ...auth, "Content-Type": "application/json" }
+  const branch = config.branch
+  // Ler usa "git/ref/..."; atualizar usa "git/refs/..." (plural) na API do GitHub.
+  const readRefPath = `git/ref/heads/${branch}`
+  const writeRefPath = `git/refs/heads/${branch}`
+
+  async function readSha(url: string, pick: (data: Record<string, unknown>) => unknown): Promise<string> {
+    const response = await fetchImpl(url, { headers: auth, cache: "no-store" })
+    if (!response.ok) throw new Error(`GitHub ${response.status}`)
+    const value = pick((await response.json()) as Record<string, unknown>)
+    if (typeof value !== "string" || !value) throw new Error("GitHub: resposta inesperada")
+    return value
+  }
+
+  // 1) commit atual da branch -> árvore base
+  const headSha = await readSha(`${api}/${readRefPath}`, (data) =>
+    (data.object as Record<string, unknown> | undefined)?.sha,
+  )
+  const baseTree = await readSha(`${api}/git/commits/${headSha}`, (data) =>
+    (data.tree as Record<string, unknown> | undefined)?.sha,
+  )
+
+  // 2) um blob por arquivo
+  const tree: { path: string; mode: string; type: string; sha: string }[] = []
+  for (const entry of entries) {
+    const response = await fetchImpl(`${api}/git/blobs`, {
+      method: "POST",
+      headers: jsonHeaders,
+      body: JSON.stringify({ content: Buffer.from(entry.bytes).toString("base64"), encoding: "base64" }),
+    })
+    if (!response.ok) throw new Error(`GitHub ${response.status}`)
+    const sha = ((await response.json()) as { sha?: unknown }).sha
+    if (typeof sha !== "string") throw new Error("GitHub: blob inválido")
+    tree.push({ path: entry.path.replace(/^\/+/, ""), mode: "100644", type: "blob", sha })
+  }
+
+  // 3) árvore nova em cima da base (sobrescreve quem já existir)
+  const treeResponse = await fetchImpl(`${api}/git/trees`, {
+    method: "POST",
+    headers: jsonHeaders,
+    body: JSON.stringify({ base_tree: baseTree, tree }),
+  })
+  if (!treeResponse.ok) throw new Error(`GitHub ${treeResponse.status}`)
+  const newTree = ((await treeResponse.json()) as { sha?: unknown }).sha
+  if (typeof newTree !== "string") throw new Error("GitHub: árvore inválida")
+
+  // 4) commit apontando para a árvore nova
+  const commitResponse = await fetchImpl(`${api}/git/commits`, {
+    method: "POST",
+    headers: jsonHeaders,
+    body: JSON.stringify({ message, tree: newTree, parents: [headSha] }),
+  })
+  if (!commitResponse.ok) throw new Error(`GitHub ${commitResponse.status}`)
+  const newCommit = ((await commitResponse.json()) as { sha?: unknown }).sha
+  if (typeof newCommit !== "string") throw new Error("GitHub: commit inválido")
+
+  // 5) move a branch para o commit novo
+  const moveResponse = await fetchImpl(`${api}/${writeRefPath}`, {
+    method: "PATCH",
+    headers: jsonHeaders,
+    body: JSON.stringify({ sha: newCommit, force: false }),
+  })
+  if (!moveResponse.ok) throw new Error(`GitHub ${moveResponse.status}`)
+}

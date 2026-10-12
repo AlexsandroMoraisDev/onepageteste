@@ -37,6 +37,9 @@ export function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
 /** Limite de tamanho por foto (8 MB). */
 export const MAX_UPLOAD_BYTES = 8 * 1024 * 1024
 
+/** Quantas fotos podem ir de uma vez no envio em lote. */
+export const MAX_BATCH_FILES = 30
+
 /** Gera um nome de arquivo seguro e único a partir do nome original. */
 export function safeFileName(originalName: string, extension: string): string {
   const base = (originalName || "foto")

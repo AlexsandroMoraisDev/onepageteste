@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 import NextImage from "next/image"
-import { ArrowDown, ArrowUp, Copy, Image as ImageIcon, Loader2, Plus, Trash2 } from "lucide-react"
+import { ArrowDown, ArrowUp, Copy, Image as ImageIcon, Images, Loader2, Plus, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -120,6 +120,62 @@ function ImageField({
   )
 }
 
+/**
+ * Envio de várias fotos de uma vez.
+ *
+ * Manda todas em uma única requisição (`/api/uploads/batch`) — no GitHub isso vira
+ * um único commit — e devolve as URLs para o chamador criar um item por foto.
+ */
+function BulkImageButton({ onAdd }: { onAdd: (urls: string[]) => void }) {
+  const [busy, setBusy] = useState(false)
+  const [message, setMessage] = useState("")
+  const [error, setError] = useState("")
+  const input = useRef<HTMLInputElement>(null)
+
+  async function send(files: File[]) {
+    setBusy(true)
+    setError("")
+    setMessage(`Enviando ${files.length} foto(s)...`)
+    try {
+      const body = new FormData()
+      for (const file of files) body.append("files", file)
+      const response = await fetch("/api/uploads/batch", { method: "POST", headers: adminHeaders(), body })
+      const result = (await response.json().catch(() => ({}))) as { urls?: string[]; message?: string }
+      if (!response.ok || !result.urls?.length) throw new Error(result.message ?? "Não foi possível enviar as fotos.")
+      onAdd(result.urls)
+      setMessage(`${result.urls.length} foto(s) adicionada(s). Clique em Salvar para publicar.`)
+    } catch (uploadError) {
+      setMessage("")
+      setError(uploadError instanceof Error ? uploadError.message : "Não foi possível enviar as fotos.")
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="flex flex-col items-start gap-1">
+      <input
+        ref={input}
+        type="file"
+        multiple
+        accept="image/jpeg,image/png,image/webp,image/gif,image/avif"
+        className="hidden"
+        onChange={(event) => {
+          const files = Array.from(event.target.files ?? [])
+          if (files.length) void send(files)
+          event.target.value = ""
+        }}
+      />
+      <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => input.current?.click()}>
+        {busy ? <Loader2 data-icon="inline-start" className="animate-spin" /> : <Images data-icon="inline-start" />}
+        Enviar várias fotos
+      </Button>
+      {message ? <p className="text-xs text-muted-foreground">{message}</p> : null}
+      {error ? <p className="text-xs text-destructive">{error}</p> : null}
+    </div>
+  )
+}
+
 export function FieldEditor({ value, path, onChange }: EditorProps) {
   const key = String(path[path.length - 1] ?? "")
   const pathKey = path.join(".")
@@ -204,6 +260,8 @@ export function FieldEditor({ value, path, onChange }: EditorProps) {
     const list = value as Record<string, unknown>[]
     const template = itemTemplates[pathKey] as Record<string, unknown> | undefined
     const sample = template ?? list[0]
+    const sampleImage = sample ? (sample as Record<string, unknown>).image : undefined
+    const hasImageField = typeof sampleImage === "string"
     return (
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between gap-3">
@@ -225,6 +283,16 @@ export function FieldEditor({ value, path, onChange }: EditorProps) {
             </Button>
           </div>
         </div>
+        {hasImageField ? (
+          <BulkImageButton
+            onAdd={(urls) =>
+              onChange(path, [
+                ...list,
+                ...urls.map((url) => ({ ...(sample as Record<string, unknown>), image: url })),
+              ])
+            }
+          />
+        ) : null}
         {hintsFor(key) ? <p className="text-xs text-muted-foreground">{hintsFor(key)}</p> : null}
 
         {list.map((item, index) => (
