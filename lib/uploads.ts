@@ -22,6 +22,18 @@ export const extensionTypes: Record<string, string> = {
   avif: "image/avif",
 }
 
+/**
+ * Copia bytes para um ArrayBuffer "puro".
+ *
+ * `Response` não aceita `Uint8Array<ArrayBufferLike>` diretamente; este helper
+ * entrega um ArrayBuffer comum, aceito como corpo em todas as versões do Node.
+ */
+export function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  const copy = new ArrayBuffer(bytes.byteLength)
+  new Uint8Array(copy).set(bytes)
+  return copy
+}
+
 /** Limite de tamanho por foto (8 MB). */
 export const MAX_UPLOAD_BYTES = 8 * 1024 * 1024
 

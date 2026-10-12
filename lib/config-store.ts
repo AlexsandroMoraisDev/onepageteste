@@ -96,11 +96,29 @@ export function normalizeConfigPath(value: string | undefined): string {
   return raw
 }
 
-/** URL da API de conteúdo do GitHub para o arquivo e a referência informados. */
-export function githubContentsUrl(config: GithubStoreConfig, ref?: string): string {
-  const base = `https://api.github.com/repos/${config.repo}/contents/${config.configPath}`
+/** URL da API de conteúdo do GitHub para um arquivo qualquer do repositório. */
+function githubApiContentsUrl(config: GithubStoreConfig, filePath: string): string {
+  const clean = filePath.replace(/^\/+/, "")
+  return `https://api.github.com/repos/${config.repo}/contents/${clean}`
+}
+
+/** URL da API de conteúdo (com referência) para um arquivo qualquer do repositório. */
+export function githubPathUrl(config: GithubStoreConfig, filePath: string, ref?: string): string {
   const branch = ref ?? config.branch
-  return `${base}?ref=${encodeURIComponent(branch)}`
+  return `${githubApiContentsUrl(config, filePath)}?ref=${encodeURIComponent(branch)}`
+}
+
+/** URL da API de conteúdo do GitHub para o arquivo de configuração e a referência informados. */
+export function githubContentsUrl(config: GithubStoreConfig, ref?: string): string {
+  return githubPathUrl(config, config.configPath, ref)
+}
+
+/** Pasta (dentro do repositório) onde o painel grava as fotos enviadas. */
+export const GITHUB_UPLOADS_DIR = "content/uploads"
+
+/** Caminho de uma foto enviada dentro do repositório. */
+export function githubUploadPath(fileName: string): string {
+  return `${GITHUB_UPLOADS_DIR}/${fileName.replace(/^\/+/, "")}`
 }
 
 function githubHeaders(config: GithubStoreConfig, accept: string): Record<string, string> {
@@ -132,8 +150,12 @@ export async function readGithubConfig(
   return mergeSiteConfig(JSON.parse(text))
 }
 
-async function readGithubSha(config: GithubStoreConfig, fetchImpl: FetchLike): Promise<string | null> {
-  const response = await fetchImpl(githubContentsUrl(config), {
+async function readGithubSha(
+  config: GithubStoreConfig,
+  filePath: string,
+  fetchImpl: FetchLike,
+): Promise<string | null> {
+  const response = await fetchImpl(githubPathUrl(config, filePath), {
     headers: githubHeaders(config, "application/vnd.github+json"),
     cache: "no-store",
   })
@@ -143,22 +165,26 @@ async function readGithubSha(config: GithubStoreConfig, fetchImpl: FetchLike): P
   return typeof data.sha === "string" ? data.sha : null
 }
 
-/** Grava o JSON no repositório (cria ou atualiza). Lança em caso de falha. */
-export async function writeGithubConfig(
+/**
+ * Grava um arquivo qualquer (texto ou binário) no repositório — cria ou atualiza.
+ * Lança em caso de falha (token inválido, sem permissão, etc.).
+ */
+export async function writeGithubFile(
   config: GithubStoreConfig,
-  content: SiteConfig,
+  filePath: string,
+  bytes: Uint8Array,
+  message: string,
   fetchImpl: FetchLike = fetch,
 ): Promise<void> {
-  const sha = await readGithubSha(config, fetchImpl)
+  const sha = await readGithubSha(config, filePath, fetchImpl)
   const body: Record<string, unknown> = {
-    message: COMMIT_MESSAGE,
-    content: Buffer.from(serializeConfig(content), "utf8").toString("base64"),
+    message,
+    content: Buffer.from(bytes).toString("base64"),
     branch: config.branch,
   }
   if (sha) body.sha = sha
 
-  const url = `https://api.github.com/repos/${config.repo}/contents/${config.configPath}`
-  const response = await fetchImpl(url, {
+  const response = await fetchImpl(githubApiContentsUrl(config, filePath), {
     method: "PUT",
     headers: { ...githubHeaders(config, "application/vnd.github+json"), "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -167,6 +193,41 @@ export async function writeGithubConfig(
     const detail = await response.text().catch(() => "")
     throw new Error(`GitHub ${response.status}${detail ? `: ${detail.slice(0, 180)}` : ""}`)
   }
+}
+
+/** Grava o JSON de conteúdo no repositório (cria ou atualiza). Lança em caso de falha. */
+export async function writeGithubConfig(
+  config: GithubStoreConfig,
+  content: SiteConfig,
+  fetchImpl: FetchLike = fetch,
+): Promise<void> {
+  await writeGithubFile(
+    config,
+    config.configPath,
+    new TextEncoder().encode(serializeConfig(content)),
+    COMMIT_MESSAGE,
+    fetchImpl,
+  )
+}
+
+/**
+ * Lê um arquivo do repositório (binário ou texto).
+ * Retorna null quando o arquivo ainda não existe lá (404).
+ */
+export async function readGithubFile(
+  config: GithubStoreConfig,
+  filePath: string,
+  fetchImpl: FetchLike = fetch,
+): Promise<{ bytes: Uint8Array; contentType: string } | null> {
+  const response = await fetchImpl(githubPathUrl(config, filePath), {
+    headers: githubHeaders(config, "application/vnd.github.raw+json"),
+    cache: "no-store",
+  })
+  if (response.status === 404) return null
+  if (!response.ok) throw new Error(`GitHub ${response.status}`)
+  const bytes = new Uint8Array(await response.arrayBuffer())
+  const contentType = response.headers.get("content-type")?.split(";")[0]?.trim() || "application/octet-stream"
+  return { bytes, contentType }
 }
 
 /** Lê o JSON do disco local. */
