@@ -9,14 +9,19 @@ import { FaqSection } from "@/components/faq-section"
 import { ContactSection } from "@/components/contact-section"
 import { Footer } from "@/components/footer"
 import { StructuredData } from "@/components/structured-data"
-import { siteConfig } from "@/lib/site-config"
+import { readSiteConfig } from "@/lib/site-config-runtime"
 
 /**
  * Ordem das seções do site = ordem das seções no painel.
  * Todo o conteúdo vem de content/site-config.json (fonte única).
+ *
+ * A leitura é feita a cada requisição (force-dynamic) para que o que o painel
+ * salva apareça no site na hora, sem precisar rodar `pnpm build` de novo.
  */
-export default function Home() {
-  const config = siteConfig
+export const dynamic = "force-dynamic"
+
+export default async function Home() {
+  const config = await readSiteConfig()
   const guarantee = [config.brand.tagline, config.meta.business.areaServed].filter(Boolean).join(" • ")
 
   // A âncora do portfólio só aparece no menu quando existe ao menos uma foto.
@@ -43,7 +48,7 @@ export default function Home() {
       <FaqSection faq={config.faq} />
       <ContactSection contact={config.contact} />
       <Footer brand={config.brand} footer={config.footer} navbar={navbar} />
-      <StructuredData />
+      <StructuredData config={config} />
     </main>
   )
 }

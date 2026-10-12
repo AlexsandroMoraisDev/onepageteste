@@ -1,12 +1,11 @@
-import { addressOneLine, phoneE164, siteConfig, siteUrl } from "@/lib/site-config"
+import { addressOneLine, phoneE164, siteUrl, type SiteConfig } from "@/lib/site-config"
 
 /**
  * Dados estruturados (schema.org) para SEO local:
  * LocalBusiness/Store + FAQPage + WebSite.
  * Tudo derivado de content/site-config.json.
  */
-export function StructuredData() {
-  const config = siteConfig
+export function StructuredData({ config }: { config: SiteConfig }) {
   const url = siteUrl(config)
   const business = config.meta.business
   const address = business.address

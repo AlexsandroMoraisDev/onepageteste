@@ -278,6 +278,52 @@ export const emptySiteConfig: SiteConfig = {
  * então o site nunca quebra por conteúdo incompleto.
  * ------------------------------------------------------------------ */
 
+/** Primeira lista encontrada entre os candidatos (aceita o campo em formatos diferentes). */
+function firstList(...candidates: unknown[]): unknown[] | undefined {
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) return candidate
+  }
+  return undefined
+}
+
+/**
+ * Normaliza um depoimento.
+ *
+ * Aceita a forma canônica (`{ quote, name, role }`) e também variações comuns de
+ * nome de campo (`text`, `author`, `cargo`…) usadas por conteúdo escrito à mão ou
+ * gerado por IA — assim um depoimento nunca "some" do site só porque a chave veio
+ * com outro nome. Um depoimento também pode vir como texto puro.
+ */
+function normalizeTestimonial(raw: unknown): TestimonialItem | null {
+  if (typeof raw === "string") {
+    const quote = raw.trim()
+    return quote ? { quote, name: "", role: "" } : null
+  }
+  if (!raw || typeof raw !== "object") return null
+  const item = raw as Record<string, unknown>
+  const pick = (...keys: string[]) => {
+    for (const key of keys) {
+      const value = item[key]
+      if (typeof value === "string" && value.trim()) return value.trim()
+    }
+    return ""
+  }
+  const quote = pick("quote", "text", "texto", "depoimento", "testimonial", "comment", "comentario", "content", "mensagem")
+  const name = pick("name", "nome", "author", "autor", "client", "cliente", "customer")
+  const role = pick("role", "cargo", "position", "company", "empresa", "relation", "relacao")
+  if (!quote && !name) return null
+  return { quote, name, role }
+}
+
+/** Sempre devolve uma lista de depoimentos válidos (descarta itens vazios). */
+function normalizeTestimonials(input: unknown, fallback: TestimonialItem[]): TestimonialItem[] {
+  const nested =
+    input && typeof input === "object" && !Array.isArray(input) ? (input as Record<string, unknown>).items : undefined
+  const list = firstList(input, nested)
+  if (!list) return fallback
+  return list.map(normalizeTestimonial).filter((item): item is TestimonialItem => item !== null)
+}
+
 function mergeArray<T>(input: T[] | undefined, fallback: T[]): T[] {
   return Array.isArray(input) ? input : fallback
 }
@@ -285,6 +331,8 @@ function mergeArray<T>(input: T[] | undefined, fallback: T[]): T[] {
 export function mergeSiteConfig(input: unknown): SiteConfig {
   const value = (input && typeof input === "object" ? input : {}) as Partial<SiteConfig>
   const base = emptySiteConfig
+  // `testimonials` pode vir como objeto ({ items: [...] }) ou já como uma lista.
+  const testimonialsValue = Array.isArray(value.testimonials) ? {} : (value.testimonials ?? {})
   return {
     meta: { ...base.meta, ...(value.meta ?? {}), business: { ...base.meta.business, ...(value.meta?.business ?? {}), address: { ...base.meta.business.address, ...(value.meta?.business?.address ?? {}) }, sameAs: mergeArray(value.meta?.business?.sameAs, base.meta.business.sameAs), } },
     brand: { ...base.brand, ...(value.brand ?? {}) },
@@ -294,7 +342,7 @@ export function mergeSiteConfig(input: unknown): SiteConfig {
     portfolio: { ...base.portfolio, ...(value.portfolio ?? {}), items: mergeArray(value.portfolio?.items, base.portfolio.items) },
     about: { ...base.about, ...(value.about ?? {}), values: mergeArray(value.about?.values, base.about.values), stats: mergeArray(value.about?.stats, base.about.stats) },
     process: { ...base.process, ...(value.process ?? {}), steps: mergeArray(value.process?.steps, base.process.steps) },
-    testimonials: { ...base.testimonials, ...(value.testimonials ?? {}), items: mergeArray(value.testimonials?.items, base.testimonials.items) },
+    testimonials: { ...base.testimonials, ...testimonialsValue, items: normalizeTestimonials(value.testimonials, base.testimonials.items) },
     faq: { ...base.faq, ...(value.faq ?? {}), items: mergeArray(value.faq?.items, base.faq.items) },
     contact: { ...base.contact, ...(value.contact ?? {}), addressLines: mergeArray(value.contact?.addressLines, base.contact.addressLines), hoursLines: mergeArray(value.contact?.hoursLines, base.contact.hoursLines), hoursStructured: mergeArray(value.contact?.hoursStructured, base.contact.hoursStructured) },
     footer: { ...base.footer, ...(value.footer ?? {}), socials: mergeArray(value.footer?.socials, base.footer.socials) },

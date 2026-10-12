@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { appendItem, moveItem, removeItem, updateAtPath, type ConfigPath } from "@/lib/config-utils"
 import { iconNames } from "@/lib/icons"
 import { fieldHints, fieldLabels, fieldLabelsByPath, itemTemplates, longTextFields } from "@/lib/panel-sections"
+import { adminHeaders } from "@/lib/panel-client"
 
 type EditorProps = {
   value: unknown
@@ -65,7 +66,7 @@ function ImageField({
     try {
       const body = new FormData()
       body.append("file", file)
-      const response = await fetch("/api/uploads", { method: "POST", body })
+      const response = await fetch("/api/uploads", { method: "POST", headers: adminHeaders(), body })
       const result = (await response.json().catch(() => ({}))) as { url?: string; message?: string }
       if (!response.ok || !result.url) throw new Error(result.message ?? "Não foi possível enviar a imagem.")
       onChange(path, result.url)

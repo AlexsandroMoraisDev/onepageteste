@@ -78,3 +78,48 @@ describe("siteThemeCss", () => {
     }
   })
 })
+
+describe("mergeSiteConfig — depoimentos", () => {
+  it("aceita os itens na forma canônica", () => {
+    const result = mergeSiteConfig({
+      testimonials: { items: [{ quote: "Ótimo atendimento", name: "Ana", role: "Cliente" }] },
+    })
+    expect(result.testimonials.items).toEqual([{ quote: "Ótimo atendimento", name: "Ana", role: "Cliente" }])
+  })
+
+  it("aceita a lista direto em testimonials (sem o campo items)", () => {
+    const result = mergeSiteConfig({
+      testimonials: [{ quote: "Muito bom", name: "João", role: "Cliente" }],
+    })
+    expect(result.testimonials.items).toHaveLength(1)
+    expect(result.testimonials.items[0].quote).toBe("Muito bom")
+    // Não devem sobrar chaves numéricas soltas no objeto da seção.
+    expect(Object.keys(result.testimonials).sort()).toEqual(["description", "eyebrow", "items", "title"])
+  })
+
+  it("mapeia nomes de campo alternativos (text/author/cargo)", () => {
+    const result = mergeSiteConfig({
+      testimonials: {
+        items: [{ text: "Resolveu meu problema", author: "Maria", cargo: "Advogada" }],
+      },
+    })
+    expect(result.testimonials.items[0]).toEqual({ quote: "Resolveu meu problema", name: "Maria", role: "Advogada" })
+  })
+
+  it("aceita depoimentos como texto puro", () => {
+    const result = mergeSiteConfig({ testimonials: { items: ["Simples e direto"] } })
+    expect(result.testimonials.items[0]).toEqual({ quote: "Simples e direto", name: "", role: "" })
+  })
+
+  it("descarta itens vazios", () => {
+    const result = mergeSiteConfig({
+      testimonials: { items: [{ quote: "", name: "" }, { quote: "Só o depoimento" }] },
+    })
+    expect(result.testimonials.items).toHaveLength(1)
+    expect(result.testimonials.items[0].quote).toBe("Só o depoimento")
+  })
+
+  it("mantém o esqueleto quando não há depoimentos", () => {
+    expect(mergeSiteConfig({}).testimonials.items).toEqual(emptySiteConfig.testimonials.items)
+  })
+})

@@ -1,11 +1,14 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
-import { Check, Copy, Download, ExternalLink, Loader2, RotateCcw, Save } from "lucide-react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { Check, Copy, Download, ExternalLink, Loader2, RotateCcw, Save, Upload } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { FieldEditor } from "@/components/painel/field-editor"
 import { applyChange } from "@/components/painel/field-editor"
+import { adminHeaders, readAdminKey, saveAdminKey } from "@/lib/panel-client"
 import { mergeSiteConfig, type SiteConfig } from "@/lib/site-config"
 import { panelSections } from "@/lib/panel-sections"
 import type { ConfigPath } from "@/lib/config-utils"
@@ -17,6 +20,10 @@ export default function PainelPage() {
   const [status, setStatus] = useState<Status>({ kind: "idle", message: "" })
   const [busy, setBusy] = useState(false)
   const [reloadToken, setReloadToken] = useState(0)
+  // A chave de acesso (ADMIN_KEY) fica só na sessão do navegador.
+  const [adminKey, setAdminKey] = useState(readAdminKey)
+  const [pasted, setPasted] = useState("")
+  const fileInput = useRef<HTMLInputElement>(null)
 
   // Carrega (e recarrega, quando o token muda) o conteúdo vindo da API.
   useEffect(() => {
@@ -42,6 +49,28 @@ export default function PainelPage() {
 
   const json = useMemo(() => (config ? JSON.stringify(config, null, 2) : ""), [config])
 
+  /** Carrega um JSON (arquivo ou colado) no editor, sem salvar ainda. */
+  function loadJson(text: string) {
+    try {
+      const parsed = JSON.parse(text)
+      setConfig(mergeSiteConfig(parsed))
+      setStatus({ kind: "ok", message: "JSON carregado no editor. Confira os campos e clique em Salvar para aplicar no site." })
+    } catch {
+      setStatus({ kind: "error", message: "JSON inválido. Confira o conteúdo colado ou o arquivo escolhido." })
+    }
+  }
+
+  async function pickFile(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    event.target.value = ""
+    if (!file) return
+    try {
+      loadJson(await file.text())
+    } catch {
+      setStatus({ kind: "error", message: "Não foi possível ler o arquivo." })
+    }
+  }
+
   async function save() {
     if (!config) return
     setBusy(true)
@@ -49,14 +78,14 @@ export default function PainelPage() {
     try {
       const response = await fetch("/api/site-config", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...adminHeaders() },
         body: JSON.stringify(config),
         cache: "no-store",
       })
       const result = (await response.json()) as { message?: string }
       if (!response.ok) throw new Error(result.message ?? "falha ao salvar")
       setConfig(mergeSiteConfig(result))
-      setStatus({ kind: "ok", message: "Conteúdo salvo em content/site-config.json. Recarregue o site para ver." })
+      setStatus({ kind: "ok", message: "Conteúdo salvo em content/site-config.json. O site já mostra a alteração." })
     } catch (error) {
       setStatus({
         kind: "error",
@@ -101,7 +130,7 @@ export default function PainelPage() {
           <div>
             <h1 className="text-lg font-bold">Editor de conteúdo do site</h1>
             <p className="text-xs text-muted-foreground">
-              As seções seguem a ordem em que o visitante lê a página. Todo texto é editável, reordenável e removível.
+              Edite campo a campo abaixo (ou carregue um JSON). Ao salvar, o site já mostra a alteração.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -109,6 +138,9 @@ export default function PainelPage() {
               <a href="/" target="_blank" rel="noopener noreferrer">
                 <ExternalLink data-icon="inline-start" /> Ver site
               </a>
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => fileInput.current?.click()} disabled={busy}>
+              <Upload data-icon="inline-start" /> Carregar JSON
             </Button>
             <Button size="sm" variant="outline" onClick={() => void copy()} disabled={busy}>
               <Copy data-icon="inline-start" /> Copiar JSON
@@ -154,6 +186,69 @@ export default function PainelPage() {
         </nav>
 
         <div className="flex w-full flex-col gap-6">
+          <Card id="sec-importar" className="scroll-mt-28">
+            <CardHeader>
+              <CardTitle>Carregar conteúdo (JSON)</CardTitle>
+              <CardDescription>
+                Você pode editar campo a campo nos blocos abaixo ou trazer o <code>site-config.json</code> inteiro.
+                Carregar apenas coloca o conteúdo no editor — clique em <strong>Salvar</strong> para aplicar no site.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <Button type="button" size="sm" variant="outline" onClick={() => fileInput.current?.click()} disabled={busy}>
+                  <Upload data-icon="inline-start" /> Escolher arquivo JSON
+                </Button>
+                <input
+                  ref={fileInput}
+                  type="file"
+                  accept="application/json,.json"
+                  className="hidden"
+                  onChange={(event) => void pickFile(event)}
+                />
+              </div>
+
+              <details className="rounded-lg border bg-muted/20 p-3">
+                <summary className="cursor-pointer text-sm font-medium">Ou cole o JSON aqui</summary>
+                <Textarea
+                  value={pasted}
+                  onChange={(event) => setPasted(event.target.value)}
+                  rows={6}
+                  placeholder='{ "brand": { "name": "Nome do cliente" } }'
+                  className="mt-3 font-mono text-xs"
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  className="mt-2"
+                  disabled={busy || !pasted.trim()}
+                  onClick={() => loadJson(pasted)}
+                >
+                  Aplicar JSON colado
+                </Button>
+              </details>
+
+              <details className="rounded-lg border bg-muted/20 p-3">
+                <summary className="cursor-pointer text-sm font-medium">Acesso (só se o servidor exigir chave)</summary>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Se você definiu <code>ADMIN_KEY</code> no servidor, informe a mesma chave para conseguir salvar. Ela fica
+                  apenas nesta sessão do navegador.
+                </p>
+                <Input
+                  value={adminKey}
+                  type="password"
+                  autoComplete="off"
+                  placeholder="ADMIN_KEY (opcional)"
+                  className="mt-2 max-w-sm"
+                  onChange={(event) => {
+                    setAdminKey(event.target.value)
+                    saveAdminKey(event.target.value)
+                  }}
+                />
+              </details>
+            </CardContent>
+          </Card>
+
           {panelSections.map((section) => (
             <Card key={section.key} id={`sec-${section.key}`} className="scroll-mt-28">
               <CardHeader>

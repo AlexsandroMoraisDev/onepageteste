@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { ThemeProvider } from "@/components/theme-provider"
 import { siteConfig, siteThemeCss, siteUrl } from "@/lib/site-config"
+import { readSiteConfig } from "@/lib/site-config-runtime"
 import "./globals.css"
 
 const geistSans = Geist({ subsets: ["latin"], variable: "--font-geist-sans", display: "swap" })
@@ -52,11 +53,13 @@ export const viewport: Viewport = {
   initialScale: 1,
 }
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  // Cores/marca lidas a cada requisição: o painel salva e o site já atualiza.
+  const themeConfig = await readSiteConfig()
   return (
     <html lang="pt-BR" suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable}`}>
       <body className="font-sans antialiased">
-        <style dangerouslySetInnerHTML={{ __html: siteThemeCss(siteConfig) }} />
+        <style dangerouslySetInnerHTML={{ __html: siteThemeCss(themeConfig) }} />
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
           {children}
         </ThemeProvider>
